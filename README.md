@@ -1,3 +1,3 @@
-# super Sampling Demo Code
+# Super Sampling Demo Code
 
 Demo code for super sampling research project 
