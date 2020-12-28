@@ -17,9 +17,9 @@ mkdir DIV2K/train
 mkdir DIV2K/valid
 
 mv DIV2K_train_HR DIV2K/train/HR/
-mv DIV2K_train_LR_unknown DIV2K/train/LR/
+mv DIV2K_train_LR_unknown DIV2K/train/
 mv DIV2K_valid_HR DIV2K/valid/HR/
-mv DIV2K_valid_LR_unknown DIV2K/valid/LR/
+mv DIV2K_valid_LR_unknown DIV2K/valid/
 
 rm DIV2K_train_HR.zip
 rm DIV2K_train_LR_unknown.zip
