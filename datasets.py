@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from torch.utils.data import Dataset
 from PIL import Image
 
@@ -21,5 +22,4 @@ class DIV2K(Dataset):
         return np.expand_dims(lr[:, :] / 255., 0), np.expand_dims(hr[:, :] / 255., 0)
 
     def __len__(self):
-        with h5py.File(self.h5_file, 'r') as f:
-            return len(f['lr'])
+        len(os.listdir(f'{self.folder_path}/HR'))
