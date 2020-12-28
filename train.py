@@ -6,12 +6,15 @@ from tqdm import tqdm
 from models import SRCNN
 from datasets import DIV2K
 
+batch_size = 16
+epochs = 2
+
 if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = SRCNN().to(device)
-    train_dataset = DIV2K(folder_path=f"./data/train", lr_type=2)
+    train_dataset = DIV2K(folder_path=f"data/DIV2K/train", lr_type=2)
     train_dataloader = torch.utils.data.DataLoader(train_dataset,
-                                                   batch_size=100,
+                                                   batch_size=batch_size,
                                                    shuffle=True,
                                                    pin_memory=True,
                                                    num_workers=3)
@@ -23,13 +26,13 @@ if __name__ == '__main__':
         {'params': model.conv3.parameters(), 'lr': 0.001}
     ], lr=0.001)
 
-    for epoch in range(2):  # loop over the dataset multiple times
+    for epoch in range(epochs):  # loop over the dataset multiple times
         model.train()
         epoch_losses = AverageMeter()
 
-        with tqdm(total=(len(train_dataset) - len(train_dataset) % args.batch_size)) as t:
+        with tqdm(total=(len(train_dataset) - len(train_dataset) % batch_size)) as t:
             t.set_description(
-                'epoch: {}/{}'.format(epoch, args.num_epochs - 1))
+                'epoch: {}/{}'.format(epoch, epochs - 1))
 
             for data in train_dataloader:
                 inputs, labels = data
