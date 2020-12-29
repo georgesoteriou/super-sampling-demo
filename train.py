@@ -8,23 +8,23 @@ from torch.cuda import amp
 
 
 batch_size = 1
-epochs = 2
+epochs = 2000
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 model = SRCNN().to(device)
-train_dataset = DIV2K(folder_path=f"data/DIV2K/train", lr_type=2)
+train_dataset = DIV2K(folder_path=f"data/DIV2K/train", lr_type=3)
 train_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size,
                                                shuffle=True,
                                                pin_memory=True,
-                                               num_workers=3)
+                                               num_workers=8)
 
 criterion = nn.MSELoss()
 optimizer = optim.Adam([
     {'params': model.conv1.parameters()},
     {'params': model.conv2.parameters()},
-    {'params': model.conv3.parameters(), 'lr': 0.001}
-], lr=0.001)
+    {'params': model.conv3.parameters(), 'lr': 0.00003}
+], lr=0.00003)
 scaler = amp.GradScaler()
 
 for epoch in range(epochs):  # loop over the dataset multiple times
@@ -53,7 +53,7 @@ for epoch in range(epochs):  # loop over the dataset multiple times
                                      f"MSE: {loss.item():.4f} "
                                      f"PSNR: {psnr_value:.2f}dB")
 
-        if (len(train_dataloader) * epoch + iteration + 1) % 200000 == 0:
+        if (len(train_dataloader) * epoch + iteration + 1) % 500 == 0:
             torch.save({"epoch": epoch + 1,
                         "optimizer": optimizer.state_dict(),
                         "state_dict": model.state_dict()
