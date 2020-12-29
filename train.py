@@ -6,6 +6,7 @@ from models import SRCNN
 from datasets import DIV2K
 from torch.cuda import amp
 
+
 batch_size = 1
 epochs = 2
 
@@ -51,3 +52,12 @@ for epoch in range(epochs):  # loop over the dataset multiple times
                                      f"[{iteration + 1}/{len(train_dataloader)}] "
                                      f"MSE: {loss.item():.4f} "
                                      f"PSNR: {psnr_value:.2f}dB")
+
+        if (len(train_dataloader) * epoch + iteration + 1) % 200000 == 0:
+            torch.save({"epoch": epoch + 1,
+                        "optimizer": optimizer.state_dict(),
+                        "state_dict": model.state_dict()
+                        }, f"./weights/SRCNN_checkpoint.pth")
+
+torch.save(model.state_dict(), f"./weights/SRCNN.pth")
+print(f"[*] Training model done! Saving model weight to `./weights/SRCNN.pth`.")
