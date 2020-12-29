@@ -1,54 +1,53 @@
 import numpy as np
 import torch
 from torch import nn, optim
-from utils import AverageMeter
 from tqdm import tqdm
 from models import SRCNN
 from datasets import DIV2K
+from torch.cuda import amp
 
-batch_size = 16
+batch_size = 1
 epochs = 2
 
-if __name__ == '__main__':
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model = SRCNN().to(device)
-    train_dataset = DIV2K(folder_path=f"data/DIV2K/train", lr_type=2)
-    train_dataloader = torch.utils.data.DataLoader(train_dataset,
-                                                   batch_size=batch_size,
-                                                   shuffle=True,
-                                                   pin_memory=True,
-                                                   num_workers=3)
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+model = SRCNN().to(device)
+train_dataset = DIV2K(folder_path=f"data/DIV2K/train", lr_type=2)
+train_dataloader = torch.utils.data.DataLoader(train_dataset,
+                                               batch_size=batch_size,
+                                               shuffle=True,
+                                               pin_memory=True,
+                                               num_workers=3)
 
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam([
-        {'params': model.conv1.parameters()},
-        {'params': model.conv2.parameters()},
-        {'params': model.conv3.parameters(), 'lr': 0.001}
-    ], lr=0.001)
+criterion = nn.MSELoss()
+optimizer = optim.Adam([
+    {'params': model.conv1.parameters()},
+    {'params': model.conv2.parameters()},
+    {'params': model.conv3.parameters(), 'lr': 0.001}
+], lr=0.001)
+scaler = amp.GradScaler()
 
-    for epoch in range(epochs):  # loop over the dataset multiple times
-        model.train()
-        epoch_losses = AverageMeter()
+for epoch in range(epochs):  # loop over the dataset multiple times
+    progress_bar = tqdm(enumerate(train_dataloader),
+                        total=len(train_dataloader))
+    for iteration, (input, target) in progress_bar:
+        # Set model gradients to zero
+        optimizer.zero_grad()
 
-        with tqdm(total=(len(train_dataset) - len(train_dataset) % batch_size)) as t:
-            t.set_description(
-                'epoch: {}/{}'.format(epoch, epochs - 1))
+        lr = input.to(device)
+        hr = target.to(device)
 
-            for data in train_dataloader:
-                inputs, labels = data
+        with amp.autocast():
+            sr = model(lr)
+            loss = criterion(sr, hr)
 
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        # Updates the scale for next iteration.
+        scaler.update()
 
-                preds = model(inputs)
+        psnr_value = 10 * math.log10((hr.max() ** 2) / loss)
 
-                loss = criterion(preds, labels)
-
-                epoch_losses.update(loss.item(), len(inputs))
-
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-                t.set_postfix(loss='{:.6f}'.format(epoch_losses.avg))
-                t.update(len(inputs))
+        progress_bar.set_description(f"[{epoch + 1}/{epochs}]"
+                                     f"[{iteration + 1}/{len(train_dataloader)}] "
+                                     f"MSE: {loss.item():.4f} "
+                                     f"PSNR: {psnr_value:.2f}dB")

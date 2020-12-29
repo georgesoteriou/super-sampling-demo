@@ -1,4 +1,6 @@
 from torch import nn
+from torch.cuda import amp
+
 
 class SRCNN(nn.Module):
     def __init__(self, num_channels=1):
@@ -8,6 +10,7 @@ class SRCNN(nn.Module):
         self.conv3 = nn.Conv2d(32, num_channels, kernel_size=5, padding=5 // 2)
         self.relu = nn.ReLU(inplace=True)
 
+    @amp.autocast()
     def forward(self, x):
         x = self.relu(self.conv1(x))
         x = self.relu(self.conv2(x))

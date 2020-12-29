@@ -8,9 +8,16 @@ from torchvision import transforms
 class DIV2K(Dataset):
     def __init__(self, folder_path, lr_type):
         super(DIV2K, self).__init__()
-        self.transform = transforms.Compose([
+        self.lr_transforms = transforms.Compose([
+            transforms.Resize((21, 21), interpolation=Image.BICUBIC),
+            transforms.Resize((33, 33), interpolation=Image.BICUBIC),
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+            transforms.Normalize(mean=[0.5, ], std=[0.5, ])
+        ])
+        self.hr_transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, ], std=[0.5, ])
+        ])
         self.folder_path = folder_path
         if lr_type not in [2, 3, 4]:
             print("Invalid lr_type. Defaulting to x2")
@@ -20,11 +27,13 @@ class DIV2K(Dataset):
 
     def __getitem__(self, idx):
         idx = idx+1
-        hr = self.transform(Image.open(
-            f"{self.folder_path}/HR/{format(idx, '04d')}.png").convert("RGB"))
-        lr = self.transform(Image.open(
-            f"{self.folder_path}/X{self.lr_type}/{format(idx, '04d')}x{self.lr_type}.png").convert("RGB"))
-        return hr, lr
+        lr_path = f"{self.folder_path}/X{self.lr_type}/{format(idx, '04d')}x{self.lr_type}.png"
+        hr_path = f"{self.folder_path}/HR/{format(idx, '04d')}.png"
+        lr_pic = Image.open(lr_path).convert("YCbCr").split()[0]
+        hr_pic = Image.open(hr_path).convert("YCbCr").split()[0]
+        lr_tensor = self.lr_transforms(lr_pic)
+        hr_tensor = self.hr_transforms(hr_pic)
+        return lr_tensor, hr_tensor
 
     def __len__(self):
         return len(os.listdir(f'{self.folder_path}/HR'))
