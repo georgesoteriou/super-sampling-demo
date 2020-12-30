@@ -1,4 +1,5 @@
 import torch
+import random
 
 
 def collate_fn_padd(batch):
@@ -17,3 +18,11 @@ def collate_fn_padd(batch):
     # compute mask
     mask = (batch != 0).to(device)
     return batch, lengths, mask
+
+
+def crop_random(img, crop_size):
+    left = random.randint(1, img.width - crop_size)
+    top = random.randint(1, img.height - crop_size)
+    right = left + crop_size
+    bottom = top + crop_size
+    return img.crop((left, top, right, bottom))
