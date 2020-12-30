@@ -26,3 +26,26 @@ def crop_random(img, crop_size):
     right = left + crop_size
     bottom = top + crop_size
     return img.crop((left, top, right, bottom))
+
+
+def crop_offset(img, crop_size, left, top):
+    right = left + crop_size
+    bottom = top + crop_size
+    return img.crop((left, top, right, bottom))
+
+
+class UnNormalize(object):
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, tensor):
+        """
+        Args:
+            tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
+        Returns:
+            Tensor: Normalized image.
+        """
+        for t, m, s in zip(tensor, self.mean, self.std):
+            t.mul_(s).add_(m)
+        return tensor

@@ -6,7 +6,6 @@ from models import SRCNN
 from datasets import DIV2K
 from torch.cuda import amp
 
-
 batch_size = 16
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
