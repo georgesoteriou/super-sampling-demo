@@ -5,8 +5,9 @@ from PIL import Image
 from torchvision import transforms
 import sys
 
-if len(sys.argv) < 2:
-    print("Please give path to picture")
+if len(sys.argv) != 3:
+    print("Not enough parameters. Correct way to use:")
+    print("python3 test-single.py path/to/weights.pth path/to/picture.png")
     exit()
 
 batch_size = 1
@@ -14,10 +15,10 @@ epochs = 2
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 model = SRCNN().to(device)
-model.load_state_dict(torch.load("weights/SRCNN.pth", map_location=device))
+model.load_state_dict(torch.load(sys.argv[1], map_location=device))
 
 # Open image
-image = Image.open(sys.argv[1]).convert("YCbCr")
+image = Image.open(sys.argv[2]).convert("YCbCr")
 y, cb, cr = image.split()
 
 preprocess = transforms.ToTensor()
