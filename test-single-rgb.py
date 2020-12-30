@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from models import SRCNN
 from PIL import Image
@@ -45,4 +46,4 @@ all_images = Image.new('RGB', (img.width*3, img.height), (250, 250, 250))
 all_images.paste(lr_img, (0, 0))
 all_images.paste(final_sr_img, (img.width, 0))
 all_images.paste(img, (img.width*2, 0))
-all_images.show()
+all_images.save("rgb.png")

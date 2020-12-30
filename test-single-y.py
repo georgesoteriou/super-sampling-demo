@@ -33,25 +33,18 @@ final_sr_img = Image.new('RGB', (img.width, img.height), (250, 250, 250))
 for left in range(0, img.width, crop_size):
     for top in range(0, img.height, crop_size):
         lr_img_crop = crop_offset(lr_img, crop_size, left, top)
-        y, cb, cr = lr_img.convert("YCbCr").split()
+        y, cb, cr = lr_img_crop.convert("YCbCr").split()
         inputs = transform(y)
         inputs = inputs.unsqueeze(0).to(device)
-
         with torch.no_grad():
             out = model(inputs).squeeze(0)
         out = out.cpu()
-        out_image_y = out[0].detach().numpy()
-        out_image_y *= 255.0
-        out_image_y = out_image_y.clip(0, 255)
-        out_image_y = Image.fromarray(np.uint8(out_image_y[0]), mode="L")
-        out_img_cb = cb.resize(out_image_y.size, Image.BICUBIC)
-        out_img_cr = cr.resize(out_image_y.size, Image.BICUBIC)
-        out_img = Image.merge(
-            "YCbCr", [out_image_y, out_img_cb, out_img_cr]).convert("RGB")
+        out_image_y = transforms.ToPILImage()(out)
+        out_img = Image.merge("YCbCr", [out_image_y, cb, cr]).convert("RGB")
         final_sr_img.paste(out_img, (left, top))
 
 all_images = Image.new('RGB', (img.width*3, img.height), (250, 250, 250))
 all_images.paste(lr_img, (0, 0))
 all_images.paste(final_sr_img, (img.width, 0))
 all_images.paste(img, (img.width*2, 0))
-all_images.show()
+all_images.save("y.png")
