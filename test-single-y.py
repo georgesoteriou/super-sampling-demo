@@ -3,7 +3,7 @@ import torch
 from models import SRCNN
 from PIL import Image
 from torchvision import transforms
-from utils import crop_offset
+from utils import crop_offset, UnNormalize
 import sys
 
 
@@ -11,7 +11,7 @@ import sys
 #     print("Not enough parameters. Correct way to use:")
 #     print("python3 test-single.py path/to/weights.pth path/to/picture.png")
 #     exit()
-scaling_factor = 3
+scaling_factor = 4
 crop_size = 94
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -21,30 +21,33 @@ model.load_state_dict(torch.load(
 
 transform = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.5, ], std=[0.5, ])
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
+for i in range(801, 901):
+    img = Image.open(
+        f"data/DIV2K/valid/HR/{format(i, '04d')}.png").convert("RGB")
+    lr_img = img.resize((int(img.width / scaling_factor),
+                         int(img.height / scaling_factor)), Image.BICUBIC)
+    lr_img = lr_img.resize((img.width, img.height), Image.BICUBIC)
+    final_sr_img = Image.new('RGB', (img.width, img.height), (250, 250, 250))
 
-img = Image.open("data/DIV2K/valid/0867.png").convert("RGB")
-lr_img = img.resize((int(img.width / scaling_factor),
-                     int(img.height / scaling_factor)), Image.BICUBIC)
-lr_img = lr_img.resize((img.width, img.height), Image.BICUBIC)
-final_sr_img = Image.new('RGB', (img.width, img.height), (250, 250, 250))
+    for left in range(0, img.width, crop_size):
+        for top in range(0, img.height, crop_size):
+            lr_img_crop = crop_offset(lr_img, crop_size, left, top)
+            y, cb, cr = lr_img_crop.convert("YCbCr").split()
+            inputs = transform(y)
+            inputs = inputs.unsqueeze(0).to(device)
+            with torch.no_grad():
+                out = model(inputs).squeeze(0)
+            out = out.cpu().detach()
+            out = UnNormalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])(out)
+            out_image_y = transforms.ToPILImage()(out)
+            out_img = Image.merge(
+                "YCbCr", [out_image_y, cb, cr]).convert("RGB")
+            final_sr_img.paste(out_img, (left, top))
 
-for left in range(0, img.width, crop_size):
-    for top in range(0, img.height, crop_size):
-        lr_img_crop = crop_offset(lr_img, crop_size, left, top)
-        y, cb, cr = lr_img_crop.convert("YCbCr").split()
-        inputs = transform(y)
-        inputs = inputs.unsqueeze(0).to(device)
-        with torch.no_grad():
-            out = model(inputs).squeeze(0)
-        out = out.cpu()
-        out_image_y = transforms.ToPILImage()(out)
-        out_img = Image.merge("YCbCr", [out_image_y, cb, cr]).convert("RGB")
-        final_sr_img.paste(out_img, (left, top))
-
-all_images = Image.new('RGB', (img.width*3, img.height), (250, 250, 250))
-all_images.paste(lr_img, (0, 0))
-all_images.paste(final_sr_img, (img.width, 0))
-all_images.paste(img, (img.width*2, 0))
-all_images.save("y.png")
+    all_images = Image.new('RGB', (img.width*3, img.height), (250, 250, 250))
+    all_images.paste(lr_img, (0, 0))
+    all_images.paste(final_sr_img, (img.width, 0))
+    all_images.paste(img, (img.width*2, 0))
+    all_images.save(f"data/DIV2K/valid/SR_Y/{format(i, '04d')}.png")
